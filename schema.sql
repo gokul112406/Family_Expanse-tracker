@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS "verification" (
 CREATE TABLE IF NOT EXISTS families (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  "ownerId" TEXT NOT NULL,
+  "ownerId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   description TEXT,
   currency TEXT NOT NULL DEFAULT 'INR',
   "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -79,8 +79,8 @@ CREATE TABLE IF NOT EXISTS family_members (
 CREATE TABLE IF NOT EXISTS expense_categories (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  "familyId" TEXT,
-  "userId" TEXT NOT NULL,
+  "familyId" TEXT REFERENCES families(id) ON DELETE CASCADE,
+  "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   type TEXT NOT NULL DEFAULT 'expense',
   icon TEXT,
   color TEXT,
@@ -91,9 +91,9 @@ CREATE TABLE IF NOT EXISTS expense_categories (
 -- 8. Expenses
 CREATE TABLE IF NOT EXISTS expenses (
   id TEXT PRIMARY KEY,
-  "familyId" TEXT,
-  "userId" TEXT NOT NULL,
-  "categoryId" TEXT NOT NULL,
+  "familyId" TEXT REFERENCES families(id) ON DELETE CASCADE,
+  "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  "categoryId" TEXT REFERENCES expense_categories(id) ON DELETE SET NULL,
   amount DECIMAL(12, 2) NOT NULL,
   currency TEXT NOT NULL DEFAULT 'INR',
   description TEXT,
@@ -107,8 +107,8 @@ CREATE TABLE IF NOT EXISTS expenses (
 -- 9. Income
 CREATE TABLE IF NOT EXISTS income (
   id TEXT PRIMARY KEY,
-  "familyId" TEXT,
-  "userId" TEXT NOT NULL,
+  "familyId" TEXT REFERENCES families(id) ON DELETE CASCADE,
+  "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   source TEXT NOT NULL,
   amount DECIMAL(12, 2) NOT NULL,
   currency TEXT DEFAULT 'INR',
@@ -123,9 +123,9 @@ CREATE TABLE IF NOT EXISTS income (
 -- 10. Budgets
 CREATE TABLE IF NOT EXISTS budgets (
   id TEXT PRIMARY KEY,
-  "familyId" TEXT NOT NULL,
-  "userId" TEXT,
-  "categoryId" TEXT,
+  "familyId" TEXT NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+  "userId" TEXT REFERENCES "user"(id) ON DELETE CASCADE,
+  "categoryId" TEXT REFERENCES expense_categories(id) ON DELETE SET NULL,
   amount DECIMAL(12, 2) NOT NULL,
   currency TEXT DEFAULT 'INR',
   period TEXT NOT NULL DEFAULT 'monthly',
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS budgets (
 -- 11. Budget Alerts
 CREATE TABLE IF NOT EXISTS budget_alerts (
   id TEXT PRIMARY KEY,
-  "budgetId" TEXT NOT NULL,
+  "budgetId" TEXT NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
   threshold INTEGER NOT NULL,
   "alertType" TEXT NOT NULL,
   "isTriggered" BOOLEAN DEFAULT false,
@@ -150,8 +150,8 @@ CREATE TABLE IF NOT EXISTS budget_alerts (
 -- 12. Notifications
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY,
-  "userId" TEXT NOT NULL,
-  "familyId" TEXT,
+  "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  "familyId" TEXT REFERENCES families(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
   title TEXT NOT NULL,
   message TEXT,
@@ -163,9 +163,9 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- 13. Family Invites
 CREATE TABLE IF NOT EXISTS family_invites (
   id TEXT PRIMARY KEY,
-  "familyId" TEXT NOT NULL,
+  "familyId" TEXT NOT NULL REFERENCES families(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
-  "invitedBy" TEXT NOT NULL,
+  "invitedBy" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'pending',
   "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -173,8 +173,8 @@ CREATE TABLE IF NOT EXISTS family_invites (
 -- 14. Activity Log
 CREATE TABLE IF NOT EXISTS activity_log (
   id TEXT PRIMARY KEY,
-  "familyId" TEXT NOT NULL,
-  "userId" TEXT NOT NULL,
+  "familyId" TEXT NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+  "userId" TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   action TEXT NOT NULL,
   "entityType" TEXT,
   "entityId" TEXT,

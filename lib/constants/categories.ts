@@ -8,6 +8,7 @@ export const EXPENSE_CATEGORIES: Record<string, string> = {
   other: 'Other',
 }
 
-export function getCategoryLabel(categoryId: string): string {
+export function getCategoryLabel(categoryId?: string | null): string {
+  if (!categoryId) return 'Other'
   return EXPENSE_CATEGORIES[categoryId] ?? categoryId
 }

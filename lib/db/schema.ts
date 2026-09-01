@@ -29,14 +29,18 @@ export const session = pgTable('session', {
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   ipAddress: text('ipAddress'),
   userAgent: text('userAgent'),
-  userId: text('userId').notNull(),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
 })
 
 export const account = pgTable('account', {
   id: text('id').primaryKey(),
   accountId: text('accountId').notNull(),
   providerId: text('providerId').notNull(),
-  userId: text('userId').notNull(),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
   accessToken: text('accessToken'),
   refreshToken: text('refreshToken'),
   idToken: text('idToken'),
@@ -61,7 +65,9 @@ export const verification = pgTable('verification', {
 export const families = pgTable('families', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  ownerId: text('ownerId').notNull(),
+  ownerId: text('ownerId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
   description: text('description'),
   currency: text('currency').default('INR').notNull(),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
@@ -72,8 +78,12 @@ export const familyMembers = pgTable(
   'family_members',
   {
     id: text('id').primaryKey(),
-    familyId: text('familyId').notNull(),
-    userId: text('userId').notNull(),
+    familyId: text('familyId')
+      .notNull()
+      .references(() => families.id, { onDelete: 'cascade' }),
+    userId: text('userId')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
     role: text('role').notNull().default('member'), // 'admin' or 'member'
     joinedAt: timestamp('joinedAt').notNull().defaultNow(),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
@@ -84,8 +94,10 @@ export const familyMembers = pgTable(
 export const expenseCategories = pgTable('expense_categories', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  familyId: text('familyId'),
-  userId: text('userId').notNull(),
+  familyId: text('familyId').references(() => families.id, { onDelete: 'cascade' }),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
   type: text('type').notNull().default('expense'), // 'expense' or 'income'
   icon: text('icon'),
   color: text('color'),
@@ -95,9 +107,11 @@ export const expenseCategories = pgTable('expense_categories', {
 
 export const expenses = pgTable('expenses', {
   id: text('id').primaryKey(),
-  familyId: text('familyId'),
-  userId: text('userId').notNull(),
-  categoryId: text('categoryId').notNull(),
+  familyId: text('familyId').references(() => families.id, { onDelete: 'cascade' }),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  categoryId: text('categoryId').references(() => expenseCategories.id, { onDelete: 'set null' }),
   amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
   currency: text('currency').default('INR').notNull(),
   description: text('description'),
@@ -110,8 +124,10 @@ export const expenses = pgTable('expenses', {
 
 export const income = pgTable('income', {
   id: text('id').primaryKey(),
-  familyId: text('familyId'),
-  userId: text('userId').notNull(),
+  familyId: text('familyId').references(() => families.id, { onDelete: 'cascade' }),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
   source: text('source').notNull(),
   amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
   currency: text('currency').default('INR'),
@@ -125,9 +141,11 @@ export const income = pgTable('income', {
 
 export const budgets = pgTable('budgets', {
   id: text('id').primaryKey(),
-  familyId: text('familyId').notNull(),
-  userId: text('userId'), // null if family-wide budget
-  categoryId: text('categoryId'), // null if for all categories
+  familyId: text('familyId')
+    .notNull()
+    .references(() => families.id, { onDelete: 'cascade' }),
+  userId: text('userId').references(() => user.id, { onDelete: 'cascade' }), // null if family-wide budget
+  categoryId: text('categoryId').references(() => expenseCategories.id, { onDelete: 'set null' }), // null if for all categories
   amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
   currency: text('currency').default('INR'),
   period: text('period').notNull().default('monthly'), // 'weekly', 'monthly', 'yearly'
@@ -140,7 +158,9 @@ export const budgets = pgTable('budgets', {
 
 export const budgetAlerts = pgTable('budget_alerts', {
   id: text('id').primaryKey(),
-  budgetId: text('budgetId').notNull(),
+  budgetId: text('budgetId')
+    .notNull()
+    .references(() => budgets.id, { onDelete: 'cascade' }),
   threshold: integer('threshold').notNull(), // percentage: 75, 100
   alertType: text('alertType').notNull(), // 'warning', 'critical'
   isTriggered: boolean('isTriggered').default(false),
@@ -150,8 +170,10 @@ export const budgetAlerts = pgTable('budget_alerts', {
 
 export const notifications = pgTable('notifications', {
   id: text('id').primaryKey(),
-  userId: text('userId').notNull(),
-  familyId: text('familyId'),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  familyId: text('familyId').references(() => families.id, { onDelete: 'cascade' }),
   type: text('type').notNull(), // 'expense_added', 'budget_alert', 'member_joined'
   title: text('title').notNull(),
   message: text('message'),
@@ -162,17 +184,25 @@ export const notifications = pgTable('notifications', {
 
 export const familyInvites = pgTable('family_invites', {
   id: text('id').primaryKey(),
-  familyId: text('familyId').notNull(),
+  familyId: text('familyId')
+    .notNull()
+    .references(() => families.id, { onDelete: 'cascade' }),
   email: text('email').notNull(),
-  invitedBy: text('invitedBy').notNull(),
+  invitedBy: text('invitedBy')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
   status: text('status').notNull().default('pending'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 })
 
 export const activityLog = pgTable('activity_log', {
   id: text('id').primaryKey(),
-  familyId: text('familyId').notNull(),
-  userId: text('userId').notNull(),
+  familyId: text('familyId')
+    .notNull()
+    .references(() => families.id, { onDelete: 'cascade' }),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
   action: text('action').notNull(),
   entityType: text('entityType'),
   entityId: text('entityId'),

@@ -14,7 +14,7 @@ interface Expense {
   id: string
   familyId: string | null
   userId: string
-  categoryId: string
+  categoryId: string | null
   amount: number | string
   currency: string
   description: string | null
