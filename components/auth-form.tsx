@@ -59,7 +59,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
     } catch (err: any) {
       const message = err?.message || ''
       if (message.includes('fetch') || message.includes('network') || message.includes('Failed to fetch')) {
-        setError('Cannot connect to the server. Make sure the dev server is running and DATABASE_URL is configured in .env.local.')
+        setError('Cannot connect to database/server. Please make sure DATABASE_URL is configured in your Vercel Environment Variables.')
       } else {
         setError('An unexpected error occurred. Please try again.')
       }
@@ -79,9 +79,9 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
       if (res?.error) {
         const msg = res.error.message || ''
         if (msg.toLowerCase().includes('not configured') || msg.toLowerCase().includes('provider')) {
-          setError('Google Sign-In is not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to your .env.local file.')
+          setError('Google Sign-In is not configured yet. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your Vercel Project Settings > Environment Variables.')
         } else {
-          setError(msg || 'Failed to sign in with Google. Please check your Google OAuth credentials.')
+          setError(msg || 'Failed to sign in with Google. Please check your Google OAuth credentials in Vercel Environment Variables.')
         }
         setGoogleLoading(false)
       }
