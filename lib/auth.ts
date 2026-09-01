@@ -1,5 +1,7 @@
 import { betterAuth } from 'better-auth'
-import { pool } from '@/lib/db'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { db } from '@/lib/db'
+import * as schema from '@/lib/db/schema'
 
 function getBaseURL(): string {
   let url = process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL
@@ -16,7 +18,15 @@ function getBaseURL(): string {
 }
 
 export const auth = betterAuth({
-  database: pool,
+  database: drizzleAdapter(db, {
+    provider: 'pg',
+    schema: {
+      user: schema.user,
+      session: schema.session,
+      account: schema.account,
+      verification: schema.verification,
+    },
+  }),
   secret: process.env.BETTER_AUTH_SECRET || 'family-expense-tracker-secret-key-12345',
   baseURL: getBaseURL(),
   socialProviders: {
