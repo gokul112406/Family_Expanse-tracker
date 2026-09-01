@@ -84,8 +84,9 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
           setError(msg || 'Failed to sign in with Google. Please check your Google OAuth credentials in Vercel Environment Variables.')
         }
         setGoogleLoading(false)
+      } else if (res?.data?.url) {
+        window.location.href = res.data.url
       }
-      // On success, Google OAuth will redirect the browser automatically
     } catch (err: any) {
       const message = err?.message || ''
       if (message.includes('fetch') || message.includes('network')) {
