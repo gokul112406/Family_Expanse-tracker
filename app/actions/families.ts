@@ -5,8 +5,9 @@ import { families, familyMembers, familyInvites, user } from '@/lib/db/schema'
 import { createNotification } from '@/app/actions/notifications'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { getUserId } from '@/lib/utils/server'
+import { getUserId, getUser } from '@/lib/utils/server'
 import { generateId } from '@/lib/utils/client'
+import { sendInviteEmail } from '@/lib/utils/email'
 
 export async function createFamily(name: string, description?: string) {
   const userId = await getUserId()
@@ -128,6 +129,21 @@ export async function addFamilyMember(familyId: string, inviteeEmail: string) {
     invitedBy: userId,
     status: 'pending',
   })
+
+  // Send a real invite email to the invitee
+  try {
+    const inviter = await getUser()
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+    await sendInviteEmail({
+      toEmail: normalizedEmail,
+      fromName: inviter.name || inviter.email,
+      familyName,
+      appUrl,
+    })
+  } catch (emailErr) {
+    console.error('Failed to send invite email:', emailErr)
+    // Don't fail the whole action if email fails — invite is still saved in DB
+  }
 
   revalidatePath('/dashboard/members')
   return { success: true, type: 'invited' as const }
@@ -388,3 +404,63 @@ export async function updateFamily(
   revalidatePath('/dashboard')
   return { success: true }
 }
+
+/**
+ * Called right after a new user signs up.
+ * Finds any pending invites for their email and auto-adds them to those families.
+ */
+export async function checkAndAcceptPendingInvites(userEmail: string, userId: string) {
+  const normalizedEmail = userEmail.trim().toLowerCase()
+
+  const pendingInvites = await db
+    .select()
+    .from(familyInvites)
+    .where(
+      and(
+        eq(familyInvites.email, normalizedEmail),
+        eq(familyInvites.status, 'pending')
+      )
+    )
+
+  if (pendingInvites.length === 0) return { joined: 0 }
+
+  let joined = 0
+  for (const invite of pendingInvites) {
+    try {
+      // Check not already a member
+      const existing = await db
+        .select()
+        .from(familyMembers)
+        .where(
+          and(
+            eq(familyMembers.familyId, invite.familyId),
+            eq(familyMembers.userId, userId)
+          )
+        )
+
+      if (!existing[0]) {
+        const memberId = generateId()
+        await db.insert(familyMembers).values({
+          id: memberId,
+          familyId: invite.familyId,
+          userId,
+          role: 'member',
+        })
+        joined++
+      }
+
+      // Mark invite as accepted
+      await db
+        .update(familyInvites)
+        .set({ status: 'accepted' })
+        .where(eq(familyInvites.id, invite.id))
+    } catch (err) {
+      console.error('Error processing invite:', invite.id, err)
+    }
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/members')
+  return { joined }
+}
+

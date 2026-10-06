@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/auth-client'
+import { checkAndAcceptPendingInvites } from '@/app/actions/families'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -53,7 +54,16 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
         return
       }
 
-      // Success — navigate to home which redirects to dashboard
+      // Success — if sign-up, auto-accept any pending family invites for this email
+      if (isSignUp && result.data?.user) {
+        try {
+          await checkAndAcceptPendingInvites(result.data.user.email, result.data.user.id)
+        } catch (inviteErr) {
+          console.error('Error checking pending invites:', inviteErr)
+        }
+      }
+
+      // Navigate to home which redirects to dashboard
       router.push('/')
       router.refresh()
     } catch (err: any) {

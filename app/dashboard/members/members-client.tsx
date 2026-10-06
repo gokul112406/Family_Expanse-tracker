@@ -95,9 +95,9 @@ export function MembersClient({
     try {
       const result = await addFamilyMember(family.id, inviteEmail)
       if (result.type === 'invited') {
-        setSuccess(`Invite sent to ${inviteEmail}. They can join once they sign up.`)
+        setSuccess(`✉️ Invite email sent to ${inviteEmail}. They will be auto-added to the family once they sign up with that email.`)
       } else {
-        setSuccess('Member added successfully')
+        setSuccess('✅ Member added successfully to the family.')
       }
       setInviteEmail('')
       router.refresh()
