@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/lib/db'
-import { expenses, expenseCategories, familyMembers, families } from '@/lib/db/schema'
+import { expenses, expenseCategories, familyMembers, families, user } from '@/lib/db/schema'
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getUserId } from '@/lib/utils/server'
@@ -158,8 +158,25 @@ export async function getFamilyExpenses(
   }
   
   const result = await db
-    .select()
+    .select({
+      id: expenses.id,
+      familyId: expenses.familyId,
+      userId: expenses.userId,
+      categoryId: expenses.categoryId,
+      amount: expenses.amount,
+      currency: expenses.currency,
+      description: expenses.description,
+      paymentMethod: expenses.paymentMethod,
+      receiptUrl: expenses.receiptUrl,
+      date: expenses.date,
+      createdAt: expenses.createdAt,
+      updatedAt: expenses.updatedAt,
+      userName: user.name,
+      userEmail: user.email,
+      userImage: user.image,
+    })
     .from(expenses)
+    .leftJoin(user, eq(expenses.userId, user.id))
     .where(and(...conditions))
     .orderBy(desc(expenses.createdAt))
   
@@ -397,3 +414,59 @@ export async function getReportSummary(
 
   return { total, count, average }
 }
+
+export async function getSpendingByMember(
+  familyId: string,
+  startDate?: Date,
+  endDate?: Date
+) {
+  const userId = await getUserId()
+
+  const membership = await db
+    .select()
+    .from(familyMembers)
+    .where(
+      and(
+        eq(familyMembers.familyId, familyId),
+        eq(familyMembers.userId, userId)
+      )
+    )
+
+  if (!membership[0]) {
+    throw new Error('Not a member of this family')
+  }
+
+  const conditions = [eq(expenses.familyId, familyId)]
+
+  if (startDate) {
+    conditions.push(gte(expenses.date, startDate))
+  }
+
+  if (endDate) {
+    conditions.push(lte(expenses.date, endDate))
+  }
+
+  const result = await db
+    .select({
+      userId: expenses.userId,
+      userName: user.name,
+      userEmail: user.email,
+      userImage: user.image,
+      total: sql<string>`sum(${expenses.amount})`,
+      count: sql<number>`count(${expenses.id})`,
+    })
+    .from(expenses)
+    .leftJoin(user, eq(expenses.userId, user.id))
+    .where(and(...conditions))
+    .groupBy(expenses.userId, user.name, user.email, user.image)
+
+  return result.map((row) => ({
+    userId: row.userId,
+    name: row.userName || row.userEmail || 'Unknown Member',
+    email: row.userEmail,
+    image: row.userImage,
+    total: Number(row.total || 0),
+    count: Number(row.count || 0),
+  }))
+}
+

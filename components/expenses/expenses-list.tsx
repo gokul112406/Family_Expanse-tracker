@@ -23,6 +23,9 @@ interface Expense {
   date: Date
   createdAt: Date
   updatedAt: Date
+  userName?: string | null
+  userEmail?: string | null
+  userImage?: string | null
 }
 
 export function ExpensesList({ familyId }: ExpensesListProps) {
@@ -77,23 +80,42 @@ export function ExpensesList({ familyId }: ExpensesListProps) {
 
   return (
     <div className="space-y-2">
-      {expenses.map((expense) => (
-        <Card key={expense.id} className="p-4 flex items-center justify-between hover:bg-accent/50 transition-colors">
-          <div className="flex-1">
-            <p className="font-medium text-foreground">
-              {expense.description || 'Expense'}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {new Date(expense.date).toLocaleDateString()} • {expense.paymentMethod}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="font-semibold text-foreground">
-              -{formatCurrency(Number(expense.amount), expense.currency)}
-            </p>
-          </div>
-        </Card>
-      ))}
+      {expenses.map((expense) => {
+        const displayName = expense.userName || expense.userEmail?.split('@')[0] || 'Member'
+        const initials = displayName.charAt(0).toUpperCase()
+
+        return (
+          <Card key={expense.id} className="p-4 flex items-center justify-between hover:bg-accent/50 transition-colors">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div 
+                className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 border border-primary/20"
+                title={`Paid by ${displayName}`}
+              >
+                {initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-medium text-foreground truncate">
+                    {expense.description || 'Expense'}
+                  </p>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
+                    Paid by <strong className="font-semibold text-foreground">{displayName}</strong>
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(expense.date).toLocaleDateString()} • {expense.paymentMethod || 'cash'}
+                </p>
+              </div>
+            </div>
+            <div className="text-right shrink-0 ml-4">
+              <p className="font-semibold text-foreground text-base">
+                -{formatCurrency(Number(expense.amount), expense.currency)}
+              </p>
+            </div>
+          </Card>
+        )
+      })}
     </div>
   )
 }
+
