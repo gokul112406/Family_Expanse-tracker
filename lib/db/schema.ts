@@ -111,7 +111,7 @@ export const expenses = pgTable('expenses', {
   userId: text('userId')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
-  categoryId: text('categoryId').references(() => expenseCategories.id, { onDelete: 'set null' }),
+  categoryId: text('categoryId'),
   amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
   currency: text('currency').default('INR').notNull(),
   description: text('description'),
